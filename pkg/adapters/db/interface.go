@@ -1,0 +1,11 @@
+package db
+
+import "context"
+
+type Store interface {
+	Create(ctx context.Context, model any) error
+	FindByID(ctx context.Context, model any, id any) error
+	FindAll(ctx context.Context, model any) error
+	Update(ctx context.Context, model any) error
+	Delete(ctx context.Context, model any) error
+}

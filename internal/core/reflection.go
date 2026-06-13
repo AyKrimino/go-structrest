@@ -53,7 +53,7 @@ func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
 			Type: f.Type.Name(),
 		}
 
-		dbTag := f.Tag.Get("db")
+		dbTag := f.Tag.Get("crud")
 		if dbTag == "" {
 			continue
 		}

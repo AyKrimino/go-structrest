@@ -1,0 +1,99 @@
+package core
+
+import (
+	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+)
+
+type BlueprintModel struct {
+	Name   string
+	Fields []BlueprintField
+}
+
+type BlueprintField struct {
+	Name string
+	Type string
+
+	// Database constraints
+	PrimaryKey    bool
+	AutoIncrement bool
+	Unique        bool
+	Nullable      bool
+	Size          int
+	Default       string
+}
+
+type ValidationRule struct {
+	Name  string
+	Value string
+}
+
+func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
+	t := reflect.TypeOf(model)
+
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	if t.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("expected struct")
+	}
+
+	bp := &BlueprintModel{
+		Name: t.Name(),
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		field := BlueprintField{
+			Name: f.Name,
+			Type: f.Type.Name(),
+		}
+
+		dbTag := f.Tag.Get("db")
+		if dbTag == "" {
+			continue
+		}
+
+		err := parseCrudTag(dbTag, &field)
+		if err != nil {
+			return nil, err
+		}
+
+		bp.Fields = append(bp.Fields, field)
+	}
+
+	return bp, nil
+}
+
+func parseCrudTag(tag string, field *BlueprintField) error {
+	var err error
+	parts := strings.SplitSeq(tag, ",")
+
+	for part := range parts {
+		switch {
+		case part == "pk":
+			field.PrimaryKey = true
+		case part == "autoincrement":
+			field.AutoIncrement = true
+		case part == "unique":
+			field.Unique = true
+		case part == "nullable":
+			field.Nullable = true
+		case strings.HasPrefix(part, "size"):
+			field.Size, err = strconv.Atoi(part[5:])
+			if err != nil {
+				return fmt.Errorf("invalid size: %w", err)
+			}
+		case strings.HasPrefix(part, "default"):
+			field.Default = part[7:]
+		default:
+			return fmt.Errorf("unknown tag: %s", part)
+		}
+	}
+
+	return nil
+}

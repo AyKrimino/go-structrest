@@ -8,8 +8,9 @@ import (
 )
 
 type BlueprintModel struct {
-	Name   string
-	Fields []BlueprintField
+	Name      string
+	Fields    []BlueprintField
+	Prototype interface{}
 }
 
 type BlueprintField struct {
@@ -42,7 +43,8 @@ func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
 	}
 
 	bp := &BlueprintModel{
-		Name: t.Name(),
+		Name:      t.Name(),
+		Prototype: reflect.New(t).Interface(),
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -96,4 +98,10 @@ func parseCrudTag(tag string, field *BlueprintField) error {
 	}
 
 	return nil
+}
+
+func (bp *BlueprintModel) NewInstance() any {
+	return reflect.New(
+		reflect.TypeOf(bp.Prototype).Elem(),
+	).Interface()
 }

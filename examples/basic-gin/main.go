@@ -18,9 +18,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	handler := core.NewResourceHandler(blueprint, &DummyStore{})
+	store := NewDummyStore()
+
+	handler := core.NewResourceHandler(blueprint, store)
 
 	root.POST("/users", handler.HandleCreate)
+	root.GET("/users/:id", handler.HandleGet)
 
 	log.Println("server listening on :8080")
 

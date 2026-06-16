@@ -1,6 +1,9 @@
 package db
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 type Store interface {
 	Create(ctx context.Context, model any) error
@@ -9,3 +12,5 @@ type Store interface {
 	Update(ctx context.Context, model any) error
 	Delete(ctx context.Context, model any) error
 }
+
+var ErrNotFound = errors.New("resource not found")

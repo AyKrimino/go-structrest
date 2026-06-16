@@ -16,6 +16,7 @@ type BlueprintModel struct {
 type BlueprintField struct {
 	Name string
 	Type string
+	Kind reflect.Kind
 
 	// Database constraints
 	PrimaryKey    bool
@@ -53,6 +54,7 @@ func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
 		field := BlueprintField{
 			Name: f.Name,
 			Type: f.Type.Name(),
+			Kind: f.Type.Kind(),
 		}
 
 		dbTag := f.Tag.Get("crud")

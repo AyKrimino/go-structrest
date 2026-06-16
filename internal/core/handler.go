@@ -84,6 +84,103 @@ func (h *ResourceHandler) HandleGet(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusOK, freshInstance)
 }
 
+func (h *ResourceHandler) HandleUpdate(ctx http.Context) {
+	idStr := ctx.Param("id")
+
+	id, err := h.parsePrimaryKey(idStr)
+	if err != nil {
+		slog.Error("failed to parse primary key", "error", err)
+		ctx.JSON(goHTTP.StatusBadRequest, err)
+		return
+	}
+
+	freshInstance := h.bluePrint.NewInstance()
+
+	err = h.store.FindByID(ctx.RequestContext(), freshInstance, id)
+	if err != nil {
+		slog.Error("failed to find resource", "error", err)
+		if errors.Is(err, db.ErrNotFound) {
+			ctx.JSON(goHTTP.StatusNotFound, err)
+			return
+		}
+		ctx.JSON(goHTTP.StatusInternalServerError, err)
+		return
+	}
+
+	err = ctx.Bind(freshInstance)
+	if err != nil {
+		slog.Error("failed to bind request", "error", err)
+		ctx.JSON(goHTTP.StatusBadRequest, err)
+		return
+	}
+
+	err = RunHook(ctx.RequestContext(), freshInstance, BeforeUpdate)
+	if err != nil {
+		slog.Error("failed to run before update hook", "error", err)
+		ctx.JSON(goHTTP.StatusConflict, err)
+		return
+	}
+
+	err = h.store.Update(ctx.RequestContext(), freshInstance)
+	if err != nil {
+		slog.Error("failed to update resource", "error", err)
+		ctx.JSON(goHTTP.StatusInternalServerError, err)
+		return
+	}
+
+	err = RunHook(ctx.RequestContext(), freshInstance, AfterUpdate)
+	if err != nil {
+		slog.Warn("failed to run after update hook", "warning", err)
+	}
+
+	ctx.JSON(goHTTP.StatusOK, freshInstance)
+}
+
+func (h *ResourceHandler) HandleDelete(ctx http.Context) {
+	idStr := ctx.Param("id")
+
+	id, err := h.parsePrimaryKey(idStr)
+	if err != nil {
+		slog.Error("failed to parse primary key", "error", err)
+		ctx.JSON(goHTTP.StatusBadRequest, err)
+		return
+	}
+
+	freshInstance := h.bluePrint.NewInstance()
+
+	err = h.store.FindByID(ctx.RequestContext(), freshInstance, id)
+	if err != nil {
+		slog.Error("failed to find resource", "error", err)
+		if errors.Is(err, db.ErrNotFound) {
+			ctx.JSON(goHTTP.StatusNotFound, err)
+			return
+		}
+		ctx.JSON(goHTTP.StatusInternalServerError, err)
+		return
+	}
+
+	err = RunHook(ctx.RequestContext(), freshInstance, BeforeDelete)
+	if err != nil {
+		slog.Error("failed to run before delete hook", "error", err)
+		ctx.JSON(goHTTP.StatusConflict, err)
+		return
+	}
+
+	err = h.store.Delete(ctx.RequestContext(), freshInstance)
+	if err != nil {
+		slog.Error("failed to delete resource", "error", err)
+		ctx.JSON(goHTTP.StatusInternalServerError, err)
+		return
+	}
+
+	err = RunHook(ctx.RequestContext(), freshInstance, AfterDelete)
+	if err != nil {
+		slog.Warn("failed to run after delete hook", "warning", err)
+	}
+
+	ctx.JSON(goHTTP.StatusNoContent, nil)
+}
+
 func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
 	var t reflect.Kind
 

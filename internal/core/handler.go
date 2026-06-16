@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	goHTTP "net/http"
 	"reflect"
@@ -58,33 +59,11 @@ func (h *ResourceHandler) HandleCreate(ctx http.Context) {
 }
 
 func (h *ResourceHandler) HandleGet(ctx http.Context) {
-	var (
-		err error
-		id  any
-	)
-
 	idStr := ctx.Param("id")
 
-	var t reflect.Kind
-	for _, field := range h.bluePrint.Fields {
-		if field.PrimaryKey {
-			t = field.Kind
-		}
-	}
-
-	// TODO: handle all the other types
-	switch t {
-	case reflect.Int:
-		id, err = strconv.Atoi(idStr)
-		if err != nil {
-			slog.Error("failed to cast id to int", "error", err)
-			ctx.JSON(goHTTP.StatusBadRequest, err)
-			return
-		}
-	case reflect.String:
-		id = idStr
-	default:
-		slog.Error("unknown primary key type", "type", t)
+	id, err := h.parsePrimaryKey(idStr)
+	if err != nil {
+		slog.Error("failed to parse primary key", "error", err)
 		ctx.JSON(goHTTP.StatusBadRequest, err)
 		return
 	}
@@ -103,4 +82,104 @@ func (h *ResourceHandler) HandleGet(ctx http.Context) {
 	}
 
 	ctx.JSON(goHTTP.StatusOK, freshInstance)
+}
+
+func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
+	var t reflect.Kind
+
+	for _, field := range h.bluePrint.Fields {
+		if field.PrimaryKey {
+			t = field.Kind
+			break
+		}
+	}
+
+	switch t {
+	case reflect.String:
+		return idStr, nil
+
+	case reflect.Int:
+		v, err := strconv.ParseInt(idStr, 10, 0)
+		if err != nil {
+			slog.Error("failed to cast id to int", "error", err)
+			return nil, err
+		}
+		return int(v), nil
+
+	case reflect.Int8:
+		v, err := strconv.ParseInt(idStr, 10, 8)
+		if err != nil {
+			slog.Error("failed to cast id to int8", "error", err)
+			return nil, err
+		}
+		return int8(v), nil
+
+	case reflect.Int16:
+		v, err := strconv.ParseInt(idStr, 10, 16)
+		if err != nil {
+			slog.Error("failed to cast id to int16", "error", err)
+			return nil, err
+		}
+		return int16(v), nil
+
+	case reflect.Int32:
+		v, err := strconv.ParseInt(idStr, 10, 32)
+		if err != nil {
+			slog.Error("failed to cast id to int32", "error", err)
+			return nil, err
+		}
+		return int32(v), nil
+
+	case reflect.Int64:
+		v, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			slog.Error("failed to cast id to int64", "error", err)
+			return nil, err
+		}
+		return v, nil
+
+	case reflect.Uint:
+		v, err := strconv.ParseUint(idStr, 10, 0)
+		if err != nil {
+			slog.Error("failed to cast id to uint", "error", err)
+			return nil, err
+		}
+		return uint(v), nil
+
+	case reflect.Uint8:
+		v, err := strconv.ParseUint(idStr, 10, 8)
+		if err != nil {
+			slog.Error("failed to cast id to uint8", "error", err)
+			return nil, err
+		}
+		return uint8(v), nil
+
+	case reflect.Uint16:
+		v, err := strconv.ParseUint(idStr, 10, 16)
+		if err != nil {
+			slog.Error("failed to cast id to uint16", "error", err)
+			return nil, err
+		}
+		return uint16(v), nil
+
+	case reflect.Uint32:
+		v, err := strconv.ParseUint(idStr, 10, 32)
+		if err != nil {
+			slog.Error("failed to cast id to uint32", "error", err)
+			return nil, err
+		}
+		return uint32(v), nil
+
+	case reflect.Uint64:
+		v, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			slog.Error("failed to cast id to uint64", "error", err)
+			return nil, err
+		}
+		return v, nil
+
+	default:
+		slog.Error("unsupported primary key type", "type", t)
+		return nil, fmt.Errorf("unsupported primary key type: %s", t)
+	}
 }

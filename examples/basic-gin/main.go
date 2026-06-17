@@ -26,6 +26,7 @@ func main() {
 	root.GET("/users/:id", handler.HandleGet)
 	root.PUT("/users/:id", handler.HandleUpdate)
 	root.DELETE("/users/:id", handler.HandleDelete)
+	root.GET("/users", handler.HandleList)
 
 	log.Println("server listening on :8080")
 

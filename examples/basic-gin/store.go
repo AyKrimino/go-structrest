@@ -82,6 +82,17 @@ func (s *DummyStore) FindByID(ctx context.Context, model any, id any) error {
 
 func (s *DummyStore) FindAll(ctx context.Context, model any) error {
 	fmt.Println("[DummyStore] FindAll")
+
+	users := make([]User, 0, len(s.users))
+
+	for _, user := range s.users {
+		users = append(users, user)
+	}
+
+	reflect.ValueOf(model).Elem().Set(
+		reflect.ValueOf(users),
+	)
+
 	return nil
 }
 

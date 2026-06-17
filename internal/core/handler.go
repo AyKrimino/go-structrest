@@ -181,6 +181,28 @@ func (h *ResourceHandler) HandleDelete(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusNoContent, nil)
 }
 
+func (h *ResourceHandler) HandleList(ctx http.Context) {
+	// TODO: add pagination & filters!
+
+	freshInstance := h.bluePrint.NewInstance()
+
+	t := reflect.TypeOf(freshInstance)
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	result := reflect.New(reflect.SliceOf(t))
+
+	err := h.store.FindAll(ctx.RequestContext(), result.Interface())
+	if err != nil {
+		slog.Error("failed to find resources", "error", err)
+		ctx.JSON(goHTTP.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(goHTTP.StatusOK, result.Interface())
+}
+
 func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
 	var t reflect.Kind
 

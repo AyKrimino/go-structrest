@@ -19,6 +19,8 @@ type QueryOptions struct {
 	SortBy string
 	Order  string // 'asc' | 'desc'
 	Search string
+
+	SearchableFields []string
 }
 
 var ErrResourceNotFound = errors.New("resource not found")

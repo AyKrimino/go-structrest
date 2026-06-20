@@ -182,51 +182,10 @@ func (h *ResourceHandler) HandleDelete(ctx http.Context) {
 }
 
 func (h *ResourceHandler) HandleList(ctx http.Context) {
-	var err error
-	queryOpts := db.QueryOptions{}
-
-	pageParam := ctx.Query("page")
-	page := 1
-	if pageParam != "" {
-		page, err = strconv.Atoi(pageParam)
-		if err != nil {
-			slog.Error("", "error", err)
-			ctx.JSON(goHTTP.StatusBadRequest, err)
-			return
-		}
-	}
-
-	limitParam := ctx.Query("limit")
-	limit := 10
-	if limitParam != "" {
-		limit, err = strconv.Atoi(limitParam)
-		if err != nil {
-			slog.Error("", "error", err)
-			ctx.JSON(goHTTP.StatusBadRequest, err)
-			return
-		}
-	}
-
-	queryOpts.Offset = (page - 1) * limit
-	queryOpts.Limit = limit
-
-	queryOpts.Order = ctx.Query("order")
-	if queryOpts.Order != "asc" && queryOpts.Order != "desc" {
-		queryOpts.Order = "asc"
-	}
-
-	queryOpts.Search = ctx.Query("search")
-
-	queryOpts.SortBy = ctx.Query("sort_by")
-	flag := false
-	for _, field := range h.bluePrint.Fields {
-		if field.Name == queryOpts.SortBy {
-			flag = true
-			break
-		}
-	}
-	if !flag {
-		queryOpts.SortBy = h.bluePrint.GetPrimaryKeyField().Name
+	queryOpts, err := h.buildQueryOptions(ctx)
+	if err != nil {
+		ctx.JSON(goHTTP.StatusBadRequest, err)
+		return
 	}
 
 	freshInstance := h.bluePrint.NewInstance()
@@ -346,4 +305,55 @@ func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
 		slog.Error("unsupported primary key type", "type", t)
 		return nil, fmt.Errorf("unsupported primary key type: %s", t)
 	}
+}
+
+func (h *ResourceHandler) isValidSortField(field string) bool {
+	for _, f := range h.bluePrint.Fields {
+		if f.Name == field {
+			return true
+		}
+	}
+
+	return false
+}
+
+func parseIntQuery(value string, defaultValue int) (int, error) {
+	if value == "" {
+		return defaultValue, nil
+	}
+
+	return strconv.Atoi(value)
+}
+
+func (h *ResourceHandler) buildQueryOptions(ctx http.Context) (db.QueryOptions, error) {
+	var opts db.QueryOptions
+
+	page, err := parseIntQuery(ctx.Query("page"), 1)
+	if err != nil {
+		return opts, err
+	}
+
+	limit, err := parseIntQuery(ctx.Query("limit"), 10)
+	if err != nil {
+		return opts, err
+	}
+
+	opts.Offset = (page - 1) * limit
+	opts.Limit = limit
+
+	opts.Order = ctx.Query("order")
+	if opts.Order != "asc" && opts.Order != "desc" {
+		opts.Order = "asc"
+	}
+
+	opts.Search = ctx.Query("search")
+
+	opts.SortBy = ctx.Query("sort_by")
+	if !h.isValidSortField(opts.SortBy) {
+		opts.SortBy = h.bluePrint.GetPrimaryKeyField().Name
+	}
+
+	opts.SearchableFields = h.bluePrint.GetSearchableFields()
+
+	return opts, nil
 }

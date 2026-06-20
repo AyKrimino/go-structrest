@@ -73,7 +73,7 @@ func (h *ResourceHandler) HandleGet(ctx http.Context) {
 	err = h.store.FindByID(ctx.RequestContext(), freshInstance, id)
 	if err != nil {
 		slog.Error("failed to find resource", "error", err)
-		if errors.Is(err, db.ErrNotFound) {
+		if errors.Is(err, db.ErrResourceNotFound) {
 			ctx.JSON(goHTTP.StatusNotFound, err)
 			return
 		}
@@ -99,7 +99,7 @@ func (h *ResourceHandler) HandleUpdate(ctx http.Context) {
 	err = h.store.FindByID(ctx.RequestContext(), freshInstance, id)
 	if err != nil {
 		slog.Error("failed to find resource", "error", err)
-		if errors.Is(err, db.ErrNotFound) {
+		if errors.Is(err, db.ErrResourceNotFound) {
 			ctx.JSON(goHTTP.StatusNotFound, err)
 			return
 		}
@@ -151,7 +151,7 @@ func (h *ResourceHandler) HandleDelete(ctx http.Context) {
 	err = h.store.FindByID(ctx.RequestContext(), freshInstance, id)
 	if err != nil {
 		slog.Error("failed to find resource", "error", err)
-		if errors.Is(err, db.ErrNotFound) {
+		if errors.Is(err, db.ErrResourceNotFound) {
 			ctx.JSON(goHTTP.StatusNotFound, err)
 			return
 		}
@@ -182,7 +182,52 @@ func (h *ResourceHandler) HandleDelete(ctx http.Context) {
 }
 
 func (h *ResourceHandler) HandleList(ctx http.Context) {
-	// TODO: add pagination & filters!
+	var err error
+	queryOpts := db.QueryOptions{}
+
+	pageParam := ctx.Query("page")
+	page := 1
+	if pageParam != "" {
+		page, err = strconv.Atoi(pageParam)
+		if err != nil {
+			slog.Error("", "error", err)
+			ctx.JSON(goHTTP.StatusBadRequest, err)
+			return
+		}
+	}
+
+	limitParam := ctx.Query("limit")
+	limit := 10
+	if limitParam != "" {
+		limit, err = strconv.Atoi(limitParam)
+		if err != nil {
+			slog.Error("", "error", err)
+			ctx.JSON(goHTTP.StatusBadRequest, err)
+			return
+		}
+	}
+
+	queryOpts.Offset = (page - 1) * limit
+	queryOpts.Limit = limit
+
+	queryOpts.Order = ctx.Query("order")
+	if queryOpts.Order != "asc" && queryOpts.Order != "desc" {
+		queryOpts.Order = "asc"
+	}
+
+	queryOpts.Search = ctx.Query("search")
+
+	queryOpts.SortBy = ctx.Query("sort_by")
+	flag := false
+	for _, field := range h.bluePrint.Fields {
+		if field.Name == queryOpts.SortBy {
+			flag = true
+			break
+		}
+	}
+	if !flag {
+		queryOpts.SortBy = h.bluePrint.GetPrimaryKeyField().Name
+	}
 
 	freshInstance := h.bluePrint.NewInstance()
 
@@ -193,7 +238,7 @@ func (h *ResourceHandler) HandleList(ctx http.Context) {
 
 	result := reflect.New(reflect.SliceOf(t))
 
-	err := h.store.FindAll(ctx.RequestContext(), result.Interface())
+	err = h.store.FindAll(ctx.RequestContext(), result.Interface(), queryOpts)
 	if err != nil {
 		slog.Error("failed to find resources", "error", err)
 		ctx.JSON(goHTTP.StatusInternalServerError, err)

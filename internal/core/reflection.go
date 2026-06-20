@@ -25,6 +25,7 @@ type BlueprintField struct {
 	Nullable      bool
 	Size          int
 	Default       string
+	Searchable    bool
 }
 
 type ValidationRule struct {
@@ -87,6 +88,8 @@ func parseCrudTag(tag string, field *BlueprintField) error {
 			field.Unique = true
 		case part == "nullable":
 			field.Nullable = true
+		case part == "searchable":
+			field.Searchable = true
 		case strings.HasPrefix(part, "size"):
 			field.Size, err = strconv.Atoi(part[5:])
 			if err != nil {
@@ -106,4 +109,25 @@ func (bp *BlueprintModel) NewInstance() any {
 	return reflect.New(
 		reflect.TypeOf(bp.Prototype).Elem(),
 	).Interface()
+}
+
+func (bp *BlueprintModel) GetSearchableFields() []string {
+	searchableFields := make([]string, 0, len(bp.Fields))
+	for _, field := range bp.Fields {
+		if field.Searchable {
+			searchableFields = append(searchableFields, field.Name)
+		}
+	}
+	return searchableFields
+}
+
+func (bp *BlueprintModel) GetPrimaryKeyField() BlueprintField {
+	var pkField BlueprintField
+	for _, field := range bp.Fields {
+		if field.PrimaryKey {
+			pkField = field
+			break
+		}
+	}
+	return pkField
 }

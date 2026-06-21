@@ -10,6 +10,7 @@ import (
 
 	"github.com/AyKrimino/go-structrest/pkg/adapters/db"
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect"
 )
 
 type BunStore struct {
@@ -39,7 +40,7 @@ func (s *BunStore) FindByID(ctx context.Context, model any, id any) error {
 	for i := 0; i < v.NumField(); i++ {
 		field := t.Field(i)
 		bunTag := field.Tag.Get("bun")
-		
+
 		isPk := false
 		for part := range strings.SplitSeq(bunTag, ",") {
 			if strings.TrimSpace(part) == "pk" {
@@ -75,9 +76,14 @@ func (s *BunStore) FindAll(ctx context.Context, model any, opts db.QueryOptions)
 		Model(model)
 
 	if opts.Search != "" && len(opts.SearchableFields) > 0 {
+		searchOp := "LIKE"
+		if s.db.Dialect().Name() == dialect.PG {
+			searchOp = "ILIKE"
+		}
+
 		query = query.WhereGroup(" AND ", func(sq *bun.SelectQuery) *bun.SelectQuery {
 			for _, field := range opts.SearchableFields {
-				sq = sq.WhereOr("? LIKE ?", bun.Ident(field), "%"+opts.Search+"%")
+				sq = sq.WhereOr(fmt.Sprintf("? %s ?", searchOp), bun.Ident(field), "%"+opts.Search+"%")
 			}
 			return sq
 		})

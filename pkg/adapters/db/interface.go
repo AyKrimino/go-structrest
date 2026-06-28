@@ -11,6 +11,9 @@ type Store interface {
 	FindAll(ctx context.Context, model any, opts QueryOptions) error
 	Update(ctx context.Context, model any) error
 	Delete(ctx context.Context, model any) error
+
+	// GetColumnName returns the column name for the given field
+	GetColumnName(model any, goFieldName string) string
 }
 
 type QueryOptions struct {

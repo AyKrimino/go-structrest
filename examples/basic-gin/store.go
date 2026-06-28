@@ -177,3 +177,8 @@ func (s *DummyStore) Delete(ctx context.Context, model any) error {
 	fmt.Printf("[DummyStore] Delete: %+v\n", user)
 	return nil
 }
+
+func (s *DummyStore) GetColumnName(model any, goFieldName string) string {
+    // For the dummy store, we just assume the Go field name is the column name
+    return goFieldName 
+}

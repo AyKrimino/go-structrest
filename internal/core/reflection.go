@@ -7,12 +7,14 @@ import (
 	"strings"
 )
 
+// BlueprintModel holds the metadata extracted from a Go struct, used by the core engine to generate dynamic handlers.
 type BlueprintModel struct {
 	Name      string
 	Fields    []BlueprintField
 	Prototype interface{}
 }
 
+// BlueprintField represents the metadata for a single field within a model, including its type and database constraints.
 type BlueprintField struct {
 	Name string
 	Type string
@@ -28,11 +30,14 @@ type BlueprintField struct {
 	Searchable    bool
 }
 
-type ValidationRule struct {
-	Name  string
-	Value string
+// NewInstance creates a new, zero-valued pointer to the model type defined in the blueprint.
+func (bp *BlueprintModel) NewInstance() any {
+	return reflect.New(
+		reflect.TypeOf(bp.Prototype).Elem(),
+	).Interface()
 }
 
+// BuildBlueprint analyzes a Go struct using reflection to extract field names, types, and custom 'crud' tags.
 func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
 	t := reflect.TypeOf(model)
 
@@ -72,6 +77,7 @@ func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
 	return bp, nil
 }
 
+// parseCrudTag interprets the comma-separated values within a 'crud' struct tag and updates the field metadata.
 func parseCrudTag(tag string, field *BlueprintField) error {
 	var err error
 	parts := strings.SplitSeq(tag, ",")
@@ -103,12 +109,7 @@ func parseCrudTag(tag string, field *BlueprintField) error {
 	return nil
 }
 
-func (bp *BlueprintModel) NewInstance() any {
-	return reflect.New(
-		reflect.TypeOf(bp.Prototype).Elem(),
-	).Interface()
-}
-
+// GetSearchableFields returns a list of Go struct field names that are marked as searchable.
 func (bp *BlueprintModel) GetSearchableFields() []string {
 	searchableFields := make([]string, 0, len(bp.Fields))
 	for _, field := range bp.Fields {
@@ -119,6 +120,7 @@ func (bp *BlueprintModel) GetSearchableFields() []string {
 	return searchableFields
 }
 
+// GetPrimaryKeyField returns the metadata for the field marked as the primary key.
 func (bp *BlueprintModel) GetPrimaryKeyField() BlueprintField {
 	var pkField BlueprintField
 	for _, field := range bp.Fields {

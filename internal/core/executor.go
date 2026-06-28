@@ -2,6 +2,8 @@ package core
 
 import "context"
 
+// RunHook checks if the provided model implements the interface corresponding to the hookType
+// and executes it. If the model does not implement the interface, it returns nil.
 func RunHook(ctx context.Context, model any, hookType HookType) error {
 	switch hookType {
 	case BeforeCreate:

@@ -13,11 +13,14 @@ import (
 	"github.com/AyKrimino/go-structrest/pkg/adapters/http"
 )
 
+// ResourceHandler manages the HTTP request lifecycle for a specific model,
+// coordinating between the HTTP context, business logic hooks, and the database store.
 type ResourceHandler struct {
 	bluePrint *BlueprintModel
 	store     db.Store
 }
 
+// NewResourceHandler creates a new handler instance for the given model blueprint and database store.
 func NewResourceHandler(bluePrint *BlueprintModel, store db.Store) *ResourceHandler {
 	return &ResourceHandler{
 		bluePrint: bluePrint,
@@ -25,6 +28,7 @@ func NewResourceHandler(bluePrint *BlueprintModel, store db.Store) *ResourceHand
 	}
 }
 
+// HandleCreate processes an HTTP POST request to create a new resource.
 func (h *ResourceHandler) HandleCreate(ctx http.Context) {
 	var err error
 
@@ -59,6 +63,7 @@ func (h *ResourceHandler) HandleCreate(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusCreated, freshInstance)
 }
 
+// HandleGet processes an HTTP GET request to retrieve a single resource by its ID.
 func (h *ResourceHandler) HandleGet(ctx http.Context) {
 	idStr := ctx.Param("id")
 
@@ -85,6 +90,7 @@ func (h *ResourceHandler) HandleGet(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusOK, freshInstance)
 }
 
+// HandleUpdate processes an HTTP PUT request to update an existing resource.
 func (h *ResourceHandler) HandleUpdate(ctx http.Context) {
 	idStr := ctx.Param("id")
 
@@ -137,6 +143,7 @@ func (h *ResourceHandler) HandleUpdate(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusOK, freshInstance)
 }
 
+// HandleDelete processes an HTTP DELETE request to remove a resource.
 func (h *ResourceHandler) HandleDelete(ctx http.Context) {
 	idStr := ctx.Param("id")
 
@@ -182,6 +189,7 @@ func (h *ResourceHandler) HandleDelete(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusNoContent, nil)
 }
 
+// HandleList processes an HTTP GET request to retrieve a paginated list of resources.
 func (h *ResourceHandler) HandleList(ctx http.Context) {
 	queryOpts, err := h.buildQueryOptions(ctx)
 	if err != nil {
@@ -208,6 +216,7 @@ func (h *ResourceHandler) HandleList(ctx http.Context) {
 	ctx.JSON(goHTTP.StatusOK, result.Interface())
 }
 
+// parsePrimaryKey converts a string ID from the URL into the correct Go type based on the model's primary key definition.
 func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
 	var t reflect.Kind
 
@@ -308,6 +317,7 @@ func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
 	}
 }
 
+// isValidSortField checks if the provided field name exists in the model's blueprint.
 func (h *ResourceHandler) isValidSortField(field string) bool {
 	for _, f := range h.bluePrint.Fields {
 		if strings.EqualFold(f.Name, field) {
@@ -318,6 +328,7 @@ func (h *ResourceHandler) isValidSortField(field string) bool {
 	return false
 }
 
+// parseIntQuery safely parses an integer from a query string, returning a default value if empty.
 func parseIntQuery(value string, defaultValue int) (int, error) {
 	if value == "" {
 		return defaultValue, nil
@@ -326,6 +337,7 @@ func parseIntQuery(value string, defaultValue int) (int, error) {
 	return strconv.Atoi(value)
 }
 
+// buildQueryOptions extracts and validates pagination, sorting, and search parameters from the HTTP request.
 func (h *ResourceHandler) buildQueryOptions(ctx http.Context) (db.QueryOptions, error) {
 	var opts db.QueryOptions
 

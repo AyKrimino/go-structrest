@@ -14,16 +14,19 @@ import (
 	"github.com/uptrace/bun/schema"
 )
 
+// BunStore implements the db.Store interface using the Bun ORM.
 type BunStore struct {
 	db *bun.DB
 }
 
+// NewBunStore creates a new BunStore instance using the provided Bun database connection.
 func NewBunStore(db *bun.DB) *BunStore {
 	return &BunStore{
 		db: db,
 	}
 }
 
+// Create inserts a new record into the database.
 func (s *BunStore) Create(ctx context.Context, model any) error {
 	_, err := s.db.NewInsert().
 		Model(model).
@@ -31,6 +34,7 @@ func (s *BunStore) Create(ctx context.Context, model any) error {
 	return err
 }
 
+// FindByID retrieves a single record by its primary key and populates the provided model.
 func (s *BunStore) FindByID(ctx context.Context, model any, id any) error {
 	v := reflect.ValueOf(model)
 	if v.Kind() == reflect.Pointer {
@@ -72,6 +76,7 @@ func (s *BunStore) FindByID(ctx context.Context, model any, id any) error {
 	return err
 }
 
+// FindAll retrieves a list of records based on the provided query options (pagination, sorting, searching).
 func (s *BunStore) FindAll(ctx context.Context, model any, opts db.QueryOptions) error {
 	query := s.db.NewSelect().
 		Model(model)
@@ -99,6 +104,7 @@ func (s *BunStore) FindAll(ctx context.Context, model any, opts db.QueryOptions)
 	return query.Scan(ctx)
 }
 
+// Update modifies an existing record in the database based on its primary key.
 func (s *BunStore) Update(ctx context.Context, model any) error {
 	_, err := s.db.NewUpdate().
 		Model(model).
@@ -107,6 +113,7 @@ func (s *BunStore) Update(ctx context.Context, model any) error {
 	return err
 }
 
+// Delete removes a record from the database based on its primary key.
 func (s *BunStore) Delete(ctx context.Context, model any) error {
 	_, err := s.db.NewDelete().
 		Model(model).
@@ -115,6 +122,7 @@ func (s *BunStore) Delete(ctx context.Context, model any) error {
 	return err
 }
 
+// GetColumnName resolves the actual database column name for a given Go struct field name using Bun's schema.
 func (s *BunStore) GetColumnName(model any, goFieldName string) string {
 	t := reflect.TypeOf(model)
 	if t.Kind() == reflect.Pointer {

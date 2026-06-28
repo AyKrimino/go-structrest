@@ -7,6 +7,7 @@ import (
 	goHTTP "net/http"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/AyKrimino/go-structrest/pkg/adapters/db"
 	"github.com/AyKrimino/go-structrest/pkg/adapters/http"
@@ -309,7 +310,7 @@ func (h *ResourceHandler) parsePrimaryKey(idStr string) (any, error) {
 
 func (h *ResourceHandler) isValidSortField(field string) bool {
 	for _, f := range h.bluePrint.Fields {
-		if f.Name == field {
+		if strings.EqualFold(f.Name, field) {
 			return true
 		}
 	}
@@ -349,11 +350,17 @@ func (h *ResourceHandler) buildQueryOptions(ctx http.Context) (db.QueryOptions, 
 	opts.Search = ctx.Query("search")
 
 	opts.SortBy = ctx.Query("sort_by")
-	if !h.isValidSortField(opts.SortBy) {
-		opts.SortBy = h.bluePrint.GetPrimaryKeyField().Name
+	if h.isValidSortField(opts.SortBy) {
+		opts.SortBy = h.store.GetColumnName(h.bluePrint.NewInstance(), opts.SortBy)
+	} else {
+		opts.SortBy = ""
 	}
 
-	opts.SearchableFields = h.bluePrint.GetSearchableFields()
+	var searchableCols []string
+	for _, goField := range h.bluePrint.GetSearchableFields() {
+		searchableCols = append(searchableCols, h.store.GetColumnName(h.bluePrint.NewInstance(), goField))
+	}
+	opts.SearchableFields = searchableCols
 
 	return opts, nil
 }

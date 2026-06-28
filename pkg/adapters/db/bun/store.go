@@ -11,6 +11,7 @@ import (
 	"github.com/AyKrimino/go-structrest/pkg/adapters/db"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect"
+	"github.com/uptrace/bun/schema"
 )
 
 type BunStore struct {
@@ -112,4 +113,23 @@ func (s *BunStore) Delete(ctx context.Context, model any) error {
 		WherePK().
 		Exec(ctx)
 	return err
+}
+
+func (s *BunStore) GetColumnName(model any, goFieldName string) string {
+	t := reflect.TypeOf(model)
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	tables := schema.NewTables(s.db.Dialect())
+	tables.Register(reflect.New(t).Interface())
+
+	table := tables.ByModel(t.Name())
+	for _, f := range table.Fields {
+		if f.GoName == goFieldName {
+			return f.Name
+		}
+	}
+
+	return goFieldName
 }

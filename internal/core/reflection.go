@@ -59,13 +59,11 @@ func BuildBlueprint(model interface{}) (*BlueprintModel, error) {
 		}
 
 		dbTag := f.Tag.Get("crud")
-		if dbTag == "" {
-			continue
-		}
-
-		err := parseCrudTag(dbTag, &field)
-		if err != nil {
-			return nil, err
+		if dbTag != "" {
+			err := parseCrudTag(dbTag, &field)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		bp.Fields = append(bp.Fields, field)

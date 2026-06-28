@@ -91,10 +91,10 @@ func (s *BunStore) FindAll(ctx context.Context, model any, opts db.QueryOptions)
 	}
 
 	if opts.SortBy != "" {
-		query = query.Order(fmt.Sprintf("%s %s", opts.SortBy, opts.Order))
+		query = query.OrderExpr("? ?", bun.Ident(opts.SortBy), bun.Safe(opts.Order))
 	}
 
-	query.Limit(opts.Limit).Offset(opts.Offset)
+	query = query.Limit(opts.Limit).Offset(opts.Offset)
 
 	return query.Scan(ctx)
 }

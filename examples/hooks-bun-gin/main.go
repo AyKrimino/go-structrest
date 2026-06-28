@@ -17,10 +17,11 @@ import (
 )
 
 type Account struct {
-	ID       int    `json:"id" bun:",pk,autoincrement" crud:"pk"`
-	Username string `json:"username" bun:",notnull" crud:"searchable"`
-	Password string `json:"password" bun:",notnull"`
-	Role     string `json:"role" bun:",notnull" crud:"searchable"`
+	ID       int     `json:"id" bun:",pk,autoincrement" crud:"pk"`
+	Username string  `json:"username" bun:",notnull" crud:"searchable"`
+	Password string  `json:"password" bun:",notnull"`
+	Role     string  `json:"role" bun:",notnull" crud:"searchable"`
+	Balance  float64 `json:"balance" bun:",notnull"`
 }
 
 func main() {
